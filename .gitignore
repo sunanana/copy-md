@@ -1,0 +1,22 @@
+# Chrome が未パッケージ拡張の読み込み時に自動生成する
+_metadata/
+
+# 拡張のパッケージ成果物。*.pem は署名用の秘密鍵なので絶対にコミットしない
+dist/
+*.crx
+*.pem
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+*~
+
+# ビルドツールは使わない構成だが、補助ツールを入れた場合に備えて
+node_modules/
+*.log

@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Service Worker のキャッシュ戦略を 3 つに絞る — TECHLOG</title>
+    <style>
+      /* ==========================================================
+         ストア掲載用スクリーンショットの被写体として使う架空の技術ブログ。
+         実在サービスを模さないよう、名称は TECHLOG / example.com で統一。
+         外部フォント・外部画像を一切読まないので、
+         オフラインでも常に同じ絵が撮れる。
+         ========================================================== */
+      :root {
+        --page: #f3f5f8;
+        --surface: #ffffff;
+        --border: #dfe4ec;
+        --border-soft: #eaeef4;
+        --ink: #14181f;
+        --muted: #5a6572;
+        --faint: #8d97a6;
+        --accent: #1a63d8;
+        --accent-soft: #eaf1fd;
+        --code-bg: #171b22;
+        --code-ink: #e6ebf2;
+        --code-key: #8ab4f8;
+        --code-str: #9ad9a4;
+        --code-com: #7b8798;
+        --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background: var(--page);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 16px;
+        line-height: 1.9;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── サイトヘッダー ─────────────────────────────────────── */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: saturate(180%) blur(12px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .site-header-inner {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 24px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        gap: 28px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 800;
+        font-size: 15px;
+        letter-spacing: 0.08em;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--ink);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .site-nav {
+        display: flex;
+        gap: 20px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .site-nav span { cursor: default; }
+      .site-nav .current { color: var(--ink); font-weight: 600; }
+
+      .header-spacer { flex: 1; }
+
+      .header-cta {
+        padding: 6px 14px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      /* ── レイアウト ─────────────────────────────────────────── */
+      .layout {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 32px 24px 72px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 272px;
+        gap: 40px;
+        align-items: start;
+      }
+
+      /* ── 記事本体 ───────────────────────────────────────────── */
+      .article {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 44px 48px 52px;
+      }
+
+      .breadcrumb {
+        font-size: 12px;
+        color: var(--faint);
+        margin-bottom: 18px;
+      }
+
+      .breadcrumb .sep { margin: 0 6px; }
+
+      h1 {
+        font-size: 34px;
+        line-height: 1.42;
+        font-weight: 800;
+        letter-spacing: 0.005em;
+        margin-bottom: 22px;
+        text-wrap: balance;
+        /* 小書き文字や長音符が行頭に来る禁則を避ける */
+        line-break: strict;
+        word-break: normal;
+        overflow-wrap: normal;
+      }
+
+      .byline {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2b3a52, #465a78);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      .byline-name { font-size: 14px; font-weight: 700; line-height: 1.5; }
+      .byline-meta { font-size: 12px; color: var(--faint); line-height: 1.5; }
+
+      .byline-stats {
+        margin-left: auto;
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .byline-stats b { font-size: 13px; color: var(--ink); }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0 34px;
+      }
+
+      .tag {
+        padding: 3px 11px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .article h2 {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.5;
+        margin: 44px 0 16px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--border);
+      }
+
+      .article h3 {
+        font-size: 17px;
+        font-weight: 700;
+        margin: 30px 0 12px;
+      }
+
+      .article p { margin-bottom: 18px; }
+
+      .article a { color: var(--accent); text-decoration: none; }
+      .article a:hover { text-decoration: underline; }
+
+      .article ul, .article ol { margin: 0 0 18px 1.4em; }
+      .article li { margin-bottom: 6px; }
+
+      .article strong { font-weight: 700; }
+
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.88em;
+        padding: 2px 6px;
+        background: #eef1f6;
+        border-radius: 5px;
+      }
+
+      pre {
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border-radius: 10px;
+        padding: 20px 22px;
+        margin-bottom: 22px;
+        overflow-x: auto;
+      }
+
+      pre code {
+        background: none;
+        padding: 0;
+        font-size: 13.5px;
+        line-height: 1.85;
+      }
+
+      .k { color: var(--code-key); }
+      .s { color: var(--code-str); }
+      .c { color: var(--code-com); }
+
+      .pre-label {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: var(--faint);
+        margin-bottom: 8px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 22px;
+        font-size: 14px;
+      }
+
+      th, td {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        text-align: left;
+        line-height: 1.7;
+      }
+
+      th { background: #f6f8fb; font-weight: 700; font-size: 13px; }
+
+      blockquote {
+        margin: 0 0 22px;
+        padding: 4px 0 4px 18px;
+        border-left: 3px solid var(--border);
+        color: var(--muted);
+      }
+
+      /* デモ記事であることの注記。記事末尾にだけ置き、上部の見た目は変えない */
+      .demo-note {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-soft);
+        font-size: 13px;
+        line-height: 1.8;
+        color: var(--faint);
+      }
+
+      /* ── サイドバー ─────────────────────────────────────────── */
+      .sidebar {
+        position: sticky;
+        top: 88px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+      }
+
+      .panel-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        color: var(--faint);
+        margin-bottom: 12px;
+      }
+
+      .toc { list-style: none; margin: 0; font-size: 13px; line-height: 1.7; }
+      .toc li { margin-bottom: 9px; }
+      .toc a { color: var(--muted); text-decoration: none; }
+      .toc .active { color: var(--accent); font-weight: 700; }
+      .toc .nested { margin-left: 14px; font-size: 12.5px; }
+
+      .profile { display: flex; gap: 12px; align-items: center; }
+      .profile .avatar { width: 44px; height: 44px; font-size: 16px; }
+      .profile-name { font-size: 14px; font-weight: 700; }
+      .profile-desc { font-size: 12px; color: var(--faint); line-height: 1.6; }
+
+      .site-footer {
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .site-footer-inner {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 24px;
+        display: flex;
+        gap: 20px;
+        font-size: 12px;
+        color: var(--faint);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href="#"><span class="brand-mark">T</span>TECHLOG</a>
+        <nav class="site-nav">
+          <span class="current">記事</span>
+          <span>本</span>
+          <span>スクラップ</span>
+        </nav>
+        <div class="header-spacer"></div>
+        <span class="header-cta">ログイン</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <article class="article">
+        <p class="breadcrumb">TECHLOG<span class="sep">/</span>Web<span class="sep">/</span>Service Worker</p>
+
+        <h1>Service Worker のキャッシュ戦略を 3 つに絞る</h1>
+
+        <div class="byline">
+          <div class="avatar">T</div>
+          <div>
+            <div class="byline-name">TECHLOG 編集部</div>
+            <div class="byline-meta">2026/08/09 に公開<span class="sep"> · </span>読了 8 分</div>
+          </div>
+          <div class="byline-stats">
+            <span><b>142</b> いいね</span>
+            <span><b>6</b> コメント</span>
+          </div>
+        </div>
+
+        <div class="tags">
+          <span class="tag">Web</span>
+          <span class="tag">ServiceWorker</span>
+          <span class="tag">PWA</span>
+          <span class="tag">パフォーマンス</span>
+        </div>
+
+        <h2 id="s1">はじめに</h2>
+        <p>
+          Service Worker のキャッシュ戦略は、名前の付いたパターンだけでも 6 種類ほど知られている。
+          しかし実際のプロダクトで運用してみると、<strong>使い分けが必要なのは 3 つだけ</strong>だった。
+          残りは組み合わせで表現できるか、そもそも選ぶべき場面がほとんどない。
+        </p>
+        <p>
+          この記事では、社内の管理画面（月間 40 万リクエスト）を 8 ヶ月運用した結果をもとに、
+          戦略を 3 つに絞った経緯と、絞ったあとに何が楽になったかをまとめる。
+        </p>
+
+        <h2 id="s2">3 つに絞った結果</h2>
+        <p>採用したのは次の 3 つ。判断は「更新の速さ」と「オフラインでの生存」のどちらを優先するかだけで決まる。</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>戦略</th>
+              <th>適用先</th>
+              <th>選ぶ理由</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>cache-first</code></td>
+              <td>ハッシュ付き静的アセット</td>
+              <td>内容が変わればファイル名が変わるので、古い版を返す事故が起きない</td>
+            </tr>
+            <tr>
+              <td><code>network-first</code></td>
+              <td>API レスポンス</td>
+              <td>鮮度が最優先。落ちたときだけキャッシュに退避する</td>
+            </tr>
+            <tr>
+              <td><code>stale-while-revalidate</code></td>
+              <td>アバター・OGP 画像</td>
+              <td>多少古くても実害がなく、体感速度への寄与が大きい</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <blockquote>
+          迷ったら <code>network-first</code> にしておく。表示が遅いのは苦情で済むが、古いデータを見せるのは事故になる。
+        </blockquote>
+
+        <h2 id="s3">実装</h2>
+        <p>
+          ルーティングは 1 箇所に集約した。戦略ごとに <code>fetch</code> ハンドラを分けると、
+          どのリクエストがどの経路に乗るのか追えなくなる。
+        </p>
+
+        <span class="pre-label">sw.js</span>
+        <pre><code><span class="c">// リクエストの種類から戦略を 1 つだけ選ぶ</span>
+<span class="k">const</span> pickStrategy = (request) =&gt; {
+  <span class="k">const</span> url = <span class="k">new</span> URL(request.url);
+
+  <span class="k">if</span> (url.pathname.startsWith(<span class="s">'/assets/'</span>)) <span class="k">return</span> cacheFirst;
+  <span class="k">if</span> (url.pathname.startsWith(<span class="s">'/api/'</span>))    <span class="k">return</span> networkFirst;
+  <span class="k">if</span> (request.destination === <span class="s">'image'</span>)       <span class="k">return</span> staleWhileRevalidate;
+
+  <span class="k">return</span> networkFirst;
+};
+
+self.addEventListener(<span class="s">'fetch'</span>, (event) =&gt; {
+  <span class="k">if</span> (event.request.method !== <span class="s">'GET'</span>) <span class="k">return</span>;
+  event.respondWith(pickStrategy(event.request)(event.request));
+});</code></pre>
+
+        <h3>キャッシュ名にバージョンを埋める</h3>
+        <p>
+          デプロイのたびに古いキャッシュを消したくなるが、消すのは
+          <code>activate</code> の中だけに限定したほうがよい。
+        </p>
+        <ul>
+          <li>キャッシュ名は <code>assets-v12</code> のように単調増加させる</li>
+          <li>削除は <code>activate</code> で、現行バージョン以外をまとめて捨てる</li>
+          <li><code>install</code> では消さない。前の版がまだ動いている可能性がある</li>
+        </ul>
+
+        <h2 id="s4">計測結果</h2>
+        <p>絞る前後で、初回表示以外の指標を 4 週間ずつ比較した。</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>指標</th>
+              <th>絞る前</th>
+              <th>絞った後</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>再訪問時の LCP 中央値</td><td>1.42 s</td><td>0.86 s</td></tr>
+            <tr><td>キャッシュ起因の不具合報告</td><td>月 3.2 件</td><td>月 0.4 件</td></tr>
+            <tr><td>sw.js の行数</td><td>418 行</td><td>146 行</td></tr>
+          </tbody>
+        </table>
+
+        <p>
+          効果が大きかったのは速度より <strong>不具合報告の減少</strong>だった。
+          戦略が 3 つなら、報告を受けた時点でどの経路を疑えばよいかが即座に決まる。
+        </p>
+
+        <h2 id="s5">まとめ</h2>
+        <ol>
+          <li>戦略は 3 つに絞る。増やすほど障害調査の初動が遅くなる</li>
+          <li>ルーティングは 1 関数に集約し、上から順に評価する</li>
+          <li>迷ったら <code>network-first</code>。古いデータを見せない側に倒す</li>
+        </ol>
+
+        <p class="demo-note">
+          このページは Chrome 拡張
+          <a href="https://github.com/sunanana/copy-md">copy-md</a>
+          の動作確認用に用意したデモ記事です。
+          URL の末尾に <code>.md</code> を付けると、同じ内容の Markdown
+          (<a href="../article.md">article.md</a>) が返ります。
+        </p>
+      </article>
+
+      <aside class="sidebar">
+        <div class="panel">
+          <p class="panel-title">目次</p>
+          <ul class="toc">
+            <li><a href="#s1">はじめに</a></li>
+            <li><a class="active" href="#s2">3 つに絞った結果</a></li>
+            <li><a href="#s3">実装</a></li>
+            <li class="nested"><a href="#s3">キャッシュ名にバージョンを埋める</a></li>
+            <li><a href="#s4">計測結果</a></li>
+            <li><a href="#s5">まとめ</a></li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <div class="profile">
+            <div class="avatar">T</div>
+            <div>
+              <div class="profile-name">TECHLOG 編集部</div>
+              <div class="profile-desc">Web フロントエンドと運用の話を書いています</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <p class="panel-title">関連記事</p>
+          <ul class="toc">
+            <li><a href="#">Cache Storage の容量上限と退避の挙動</a></li>
+            <li><a href="#">Background Sync を本番投入して分かったこと</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <span>TECHLOG</span>
+        <span>利用規約</span>
+        <span>プライバシーポリシー</span>
+        <span>copy-md のデモ用に用意した架空のブログです</span>
+      </div>
+    </footer>
+  </body>
+</html>

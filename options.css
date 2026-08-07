@@ -1,0 +1,322 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #475569;
+  --accent: #0f766e;
+  --accent-text: #f0fdfa;
+  --ok: #15803d;
+  --ng: #b91c1c;
+
+  /* フロー図用 */
+  --fd-line: #9aabbe;
+  --fd-accent-soft: #e4f2f0;
+  --fd-accent-line: #6fb0a9;
+  --fd-outside: #9a6323;
+  --fd-outside-soft: #f7f0e5;
+  --fd-outside-line: #cdae83;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #14b8a6;
+    --accent-text: #042f2e;
+    --ok: #4ade80;
+    --ng: #f87171;
+
+    --fd-line: #5b6f88;
+    --fd-accent-soft: #10312e;
+    --fd-accent-line: #2f7d75;
+    --fd-outside: #dcaa66;
+    --fd-outside-soft: #2a2115;
+    --fd-outside-line: #6d5735;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 32px 20px 64px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0 0 24px;
+  font-size: 20px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+section {
+  margin-bottom: 16px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.lead {
+  margin: 0 0 16px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+input[type="password"],
+input[type="text"] {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+input[type="password"]:focus,
+input[type="text"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.checkbox {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+button {
+  padding: 8px 18px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.status {
+  min-height: 1.7em;
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status[data-kind="ok"] {
+  color: var(--ok);
+}
+
+.status[data-kind="ng"] {
+  color: var(--ng);
+}
+
+ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+/* 直接取得するサイトの表 */
+
+button.with-icon {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 7px 14px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  padding: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+td {
+  padding: 0 0 6px;
+  vertical-align: middle;
+}
+
+td:not(:last-child) {
+  padding-right: 8px;
+}
+
+.suffix-col {
+  width: 110px;
+}
+
+.action-col {
+  width: 36px;
+}
+
+td input[type="text"] {
+  width: 100%;
+  padding: 7px 10px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--muted);
+  border-color: transparent;
+}
+
+.icon-button:hover {
+  color: var(--ng);
+  border-color: var(--ng);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+code {
+  padding: 1px 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* 取得フローの図 */
+
+.flow-body {
+  margin-top: 18px;
+}
+
+.flow-body svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ==========================================================
+   diagram-design の作図規約で描き直したフロー図のスタイル。
+   色は options.css の既存トークンだけを参照する。
+   新しい色は 1 つも追加していない。
+   ========================================================== */
+
+/* ゾーン — 端末内と外部。境界は破線の縦ライン */
+.fd2-zone-in  { fill: var(--fd-accent-soft); stroke: var(--fd-accent-line); stroke-width: 1; }
+.fd2-zone-out { fill: var(--fd-outside-soft); stroke: var(--fd-outside-line); stroke-width: 1; stroke-dasharray: 5 4; }
+.fd2-boundary { fill: none; stroke: var(--fd-outside-line); stroke-width: 1.2; stroke-dasharray: 6 5; }
+.fd2-zone-lbl-in  { fill: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; }
+.fd2-zone-lbl-out { fill: var(--fd-outside); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; }
+
+/* ノード — 形が種別を担う。塗りは共通で、色では種別を表さない */
+.fd2-node     { fill: var(--surface); stroke: var(--fd-line); stroke-width: 1; }
+.fd2-node-err { fill: var(--surface); stroke: var(--ng); stroke-width: 1.2; }
+.fd2-focal    { fill: var(--surface); stroke: var(--accent); stroke-width: 1.8; }
+
+.fd2-name     { fill: var(--text); font-size: 12px; font-weight: 600; }
+.fd2-name-sm  { fill: var(--text); font-size: 11px; font-weight: 600; }
+.fd2-name-err { fill: var(--ng); font-size: 12px; font-weight: 600; }
+.fd2-sub-ja   { fill: var(--muted); font-size: 10px; }
+.fd2-sub-mono { fill: var(--muted); font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* 線 — 直交エルボーのみ。角は r=8 の四分円 */
+.fd2-edge        { fill: none; stroke: var(--fd-line); stroke-width: 1.2; }
+.fd2-edge-accent { fill: none; stroke: var(--accent); stroke-width: 1.8; }
+.fd2-edge-out    { fill: none; stroke: var(--fd-outside-line); stroke-width: 1.2; }
+.fd2-ah        { fill: var(--fd-line); }
+.fd2-ah-accent { fill: var(--accent); }
+.fd2-ah-out    { fill: var(--fd-outside-line); }
+
+/* 分岐ラベル — 不透明マスクを敷き、線との間を 8px 以上空ける */
+.fd2-mask-in    { fill: var(--fd-accent-soft); }
+.fd2-mask-out   { fill: var(--fd-outside-soft); }
+.fd2-lbl        { font-size: 10px; font-weight: 700; fill: var(--muted); }
+.fd2-lbl-accent { font-size: 10px; font-weight: 700; fill: var(--accent); }
+.fd2-lbl-err    { font-size: 10px; font-weight: 700; fill: var(--ng); }
+
+/* 境界バッジ — 何が出入りするかを境界の上で名指しする */
+.fd2-badge   { fill: var(--surface); stroke: var(--fd-outside-line); stroke-width: 1; }
+.fd2-badge-t { fill: var(--fd-outside); font-size: 10px; font-weight: 700; }
+
+/* 凡例 — 図の外、下端の水平ストリップ */
+.fd2-legend-rule { stroke: var(--border); stroke-width: 1; }
+.fd2-legend-eyebrow {
+  fill: var(--muted);
+  font-size: 9px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.18em;
+}
+.fd2-legend-t    { fill: var(--muted); font-size: 9px; }
+.fd2-swatch      { fill: var(--surface); stroke: var(--fd-line); stroke-width: 1; }
+.fd2-swatch-badge { fill: var(--surface); stroke: var(--fd-outside-line); stroke-width: 1; }

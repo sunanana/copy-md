@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>copy-md</title>
+    <style>
+      :root {
+        --page: #f3f5f8;
+        --surface: #ffffff;
+        --border: #dfe4ec;
+        --ink: #14181f;
+        --muted: #5a6572;
+        --faint: #8d97a6;
+        --accent: #1a63d8;
+        --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background: var(--page);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 16px;
+        line-height: 1.9;
+        -webkit-font-smoothing: antialiased;
+        padding: 64px 24px 96px;
+      }
+
+      main { max-width: 680px; margin: 0 auto; }
+
+      h1 { font-size: 30px; font-weight: 800; margin-bottom: 12px; }
+
+      .lede { color: var(--muted); margin-bottom: 40px; }
+
+      h2 {
+        font-size: 18px;
+        font-weight: 800;
+        margin: 40px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--border);
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 22px 24px;
+      }
+
+      .card + .card { margin-top: 14px; }
+
+      .card-title { font-weight: 700; margin-bottom: 6px; }
+      .card-desc { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+
+      a { color: var(--accent); }
+
+      .url {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        word-break: break-all;
+      }
+
+      .url + .url { margin-top: 4px; }
+
+      footer {
+        margin-top: 56px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+        font-size: 13px;
+        color: var(--faint);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>copy-md</h1>
+      <p class="lede">
+        開いているページの内容を Markdown として取得し、クリップボードにコピーする Chrome 拡張。
+        このページは動作確認用のデモを置いてあります。
+      </p>
+
+      <h2>デモ記事</h2>
+
+      <div class="card">
+        <p class="card-title">Service Worker のキャッシュ戦略を 3 つに絞る</p>
+        <p class="card-desc">
+          記事ページの URL の末尾に <code>.md</code> を付けると、同じ内容の Markdown が返ります。
+          copy-md の「直接取得」がどう動くかを、外部サービスを経由せずに確認できます。
+        </p>
+        <a class="url" href="demo/article">./demo/article</a>
+        <a class="url" href="demo/article.md">./demo/article.md</a>
+      </div>
+
+      <h2>リポジトリ</h2>
+
+      <div class="card">
+        <p class="card-desc">
+          ソースコード、インストール手順、プライバシーポリシーは GitHub にあります。
+        </p>
+        <a class="url" href="https://github.com/sunanana/copy-md">github.com/sunanana/copy-md</a>
+      </div>
+
+      <footer>MIT License</footer>
+    </main>
+  </body>
+</html>

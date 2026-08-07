@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>copy-md の設定</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>copy-md の設定</h1>
+
+      <section>
+        <h2>サイトが公開している Markdown 表示ページから取得する</h2>
+        <p class="lead">
+          サイトが Markdown の表示ページを公開している場合、末尾に <code>.md</code> を付ければ
+          直接 Markdown を取得できます。<br />
+          <br />
+          例: デモ記事の通常ページと Markdown 化の URL<br />
+          <a href="https://sunanana.github.io/copy-md/demo/article" target="_blank" rel="noreferrer"><code>https://sunanana.github.io/copy-md/demo/article</code></a><br />
+          <a href="https://sunanana.github.io/copy-md/demo/article.md" target="_blank" rel="noreferrer"><code>https://sunanana.github.io/copy-md/demo/article.md</code></a>
+        </p>
+
+        <button id="add-source" type="button" class="with-icon">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          サイトを追加
+        </button>
+
+        <table id="sources">
+          <thead>
+            <tr>
+              <th scope="col">URL</th>
+              <th scope="col" class="suffix-col">追加拡張子</th>
+              <th scope="col" class="action-col"><span class="visually-hidden">操作</span></th>
+            </tr>
+          </thead>
+          <tbody id="sources-body"></tbody>
+        </table>
+        <p id="sources-empty" class="note" hidden>
+          登録がありません。この状態ではすべてのページが Jina AI Reader 経由になります。
+        </p>
+
+        <div class="actions">
+          <button id="reset-sources" type="button">既定に戻す</button>
+        </div>
+
+        <p id="sources-status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section>
+        <h2>Jina AI Reader の API キー</h2>
+        <p class="lead">上の表に該当しないページを Markdown にするときだけ使います。</p>
+        <p class="note">設定は <code>chrome.storage.local</code> にこの端末のみで保存されます。</p>
+
+        <label class="field-label" for="api-key">API キー</label>
+        <input
+          id="api-key"
+          type="password"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="jina_..."
+        />
+
+        <label class="checkbox">
+          <input id="reveal" type="checkbox" />
+          キーを表示する
+        </label>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section>
+        <h2>API キーの取得方法</h2>
+        <ol>
+          <li><a href="https://jina.ai/" target="_blank" rel="noreferrer">https://jina.ai/</a> を開く</li>
+          <li>Reader API のセクションで発行される <code>jina_</code> で始まるキーをコピーする</li>
+        </ol>
+        <p class="note">
+          無料トークンが取得出来ます。
+          なお無料トークンはレートリミットがある点にご注意ください。
+        </p>
+      </section>
+
+      <section>
+        <h2>Markdown を取得するまでの流れ</h2>
+
+        <div class="flow-body">
+          <svg viewBox="0 0 680 692" role="img" aria-label="Markdown を取得するまでのフロー図。端末内で完結する経路と、外部サービスを経由する経路に分かれる。">
+            <defs>
+              <marker id="f2-ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+                <polygon class="fd2-ah" points="0 0, 8 3, 0 6" />
+              </marker>
+              <marker id="f2-ah-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+                <polygon class="fd2-ah-accent" points="0 0, 8 3, 0 6" />
+              </marker>
+              <marker id="f2-ah-out" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+                <polygon class="fd2-ah-out" points="0 0, 8 3, 0 6" />
+              </marker>
+            </defs>
+
+            <!-- ゾーン -->
+            <rect class="fd2-zone-in"  x="16"  y="48" width="320" height="540" rx="8" />
+            <rect class="fd2-zone-out" x="360" y="48" width="304" height="540" rx="8" />
+            <text class="fd2-zone-lbl-in"  x="16"  y="40">この端末（ブラウザ）の中</text>
+            <text class="fd2-zone-lbl-out" x="360" y="40">外部サービス</text>
+            <path class="fd2-boundary" d="M 348,48 V 588" />
+
+            <!-- 線を先に描き、ノードの背面に回す。角は r=8 の四分円 -->
+            <line class="fd2-edge" x1="176" y1="112" x2="176" y2="140" marker-end="url(#f2-ah)" />
+            <line class="fd2-edge-accent" x1="176" y1="228" x2="176" y2="256" marker-end="url(#f2-ah-accent)" />
+            <line class="fd2-edge-accent" x1="176" y1="324" x2="176" y2="508" marker-end="url(#f2-ah-accent)" />
+            <path class="fd2-edge-out" d="M 276,184 H 504 Q 512,184 512,192 V 256" marker-end="url(#f2-ah-out)" />
+            <line class="fd2-edge" x1="512" y1="324" x2="512" y2="352" marker-end="url(#f2-ah)" />
+            <line class="fd2-edge" x1="512" y1="440" x2="512" y2="508" marker-end="url(#f2-ah)" />
+            <path class="fd2-edge" d="M 412,396 H 216 Q 208,396 208,404 V 508" marker-end="url(#f2-ah)" />
+
+            <!-- 境界バッジ: 線の上に置き、何が出入りするかを境界で名指しする -->
+            <rect class="fd2-badge" x="312" y="172" width="128" height="24" rx="12" />
+            <text class="fd2-badge-t" x="376" y="188" text-anchor="middle">越えるのは URL だけ</text>
+
+            <rect class="fd2-badge" x="272" y="384" width="120" height="24" rx="12" />
+            <text class="fd2-badge-t" x="332" y="400" text-anchor="middle">戻るのは Markdown</text>
+
+            <!-- 分岐ラベル: 縦の区間の脇に置き、線から 12px 空ける -->
+            <rect class="fd2-mask-in" x="188" y="232" width="60" height="16" rx="2" />
+            <text class="fd2-lbl-accent" x="196" y="244">一致した</text>
+
+            <rect class="fd2-mask-out" x="524" y="212" width="68" height="16" rx="2" />
+            <text class="fd2-lbl" x="532" y="224">一致しない</text>
+
+            <rect class="fd2-mask-in" x="220" y="448" width="68" height="16" rx="2" />
+            <text class="fd2-lbl" x="228" y="460">閲覧できる</text>
+
+            <rect class="fd2-mask-out" x="524" y="464" width="80" height="16" rx="2" />
+            <text class="fd2-lbl-err" x="532" y="476">閲覧できない</text>
+
+            <!-- 開始（ピル） -->
+            <rect class="fd2-node" x="56" y="64" width="240" height="48" rx="24" />
+            <text class="fd2-name" x="176" y="92" text-anchor="middle">拡張アイコンをクリック</text>
+
+            <!-- 判定（ひし形） -->
+            <polygon class="fd2-node" points="176,140 276,184 176,228 76,184" />
+            <text class="fd2-name-sm" x="176" y="180" text-anchor="middle">設定した URL パターンと</text>
+            <text class="fd2-name-sm" x="176" y="196" text-anchor="middle">一致するか？</text>
+
+            <!-- 処理（角丸長方形）— 端末内で完結 -->
+            <rect class="fd2-node" x="56" y="256" width="240" height="68" rx="6" />
+            <text class="fd2-name" x="176" y="280" text-anchor="middle">URL に追加拡張子を付けて</text>
+            <text class="fd2-name" x="176" y="296" text-anchor="middle">サイトから直接取得</text>
+            <text class="fd2-sub-ja" x="176" y="316" text-anchor="middle">外部サービスへの送信なし</text>
+
+            <!-- 処理 — 外部サービス経由 -->
+            <rect class="fd2-node" x="392" y="256" width="240" height="68" rx="6" />
+            <text class="fd2-name" x="512" y="280" text-anchor="middle">URL を送信し Jina が</text>
+            <text class="fd2-name" x="512" y="296" text-anchor="middle">ページを取得して変換</text>
+            <text class="fd2-sub-mono" x="512" y="316" text-anchor="middle">r.jina.ai</text>
+
+            <!-- 判定 -->
+            <polygon class="fd2-node" points="512,352 612,396 512,440 412,396" />
+            <text class="fd2-name-sm" x="512" y="392" text-anchor="middle">Jina から閲覧できる</text>
+            <text class="fd2-name-sm" x="512" y="408" text-anchor="middle">ページか？</text>
+
+            <!-- 終了（焦点）— アクセントはこの 1 点と端末内の経路のみ -->
+            <rect class="fd2-focal" x="56" y="508" width="240" height="56" rx="28" />
+            <text class="fd2-name" x="176" y="528" text-anchor="middle">Markdown を</text>
+            <text class="fd2-name" x="176" y="544" text-anchor="middle">クリップボードにコピー</text>
+
+            <!-- 終了（エラー） -->
+            <rect class="fd2-node-err" x="392" y="508" width="240" height="56" rx="28" />
+            <text class="fd2-name-err" x="512" y="540" text-anchor="middle">本文を取得できずエラー</text>
+
+            <!-- 凡例 -->
+            <line class="fd2-legend-rule" x1="16" y1="616" x2="664" y2="616" />
+            <text class="fd2-legend-eyebrow" x="16" y="632">LEGEND · 形が種別を表す</text>
+
+            <rect class="fd2-swatch" x="16" y="652" width="24" height="12" rx="6" />
+            <text class="fd2-legend-t" x="48" y="660">開始・終了</text>
+
+            <rect class="fd2-swatch" x="128" y="652" width="24" height="12" rx="4" />
+            <text class="fd2-legend-t" x="160" y="660">処理</text>
+
+            <polygon class="fd2-swatch" points="232,652 244,658 232,664 220,658" />
+            <text class="fd2-legend-t" x="252" y="660">判定</text>
+
+            <line class="fd2-edge-accent" x1="320" y1="658" x2="348" y2="658" marker-end="url(#f2-ah-accent)" />
+            <text class="fd2-legend-t" x="356" y="660">端末内で完結する経路</text>
+
+            <rect class="fd2-swatch-badge" x="488" y="652" width="24" height="12" rx="6" />
+            <text class="fd2-legend-t" x="520" y="660">境界を越える情報</text>
+          </svg>
+
+          <p class="note">
+            「サイトが公開している Markdown 表示ページから取得する」に登録したサイトは、外部サービスを利用しません。<br />
+            ログイン認証が必要なサイトは、外部サービスからは閲覧できません。
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <template id="source-row">
+      <tr>
+        <td>
+          <input
+            type="text"
+            class="pattern"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="https://example.com/posts/*"
+            aria-label="URL パターン"
+          />
+        </td>
+        <td class="suffix-col">
+          <input
+            type="text"
+            class="suffix"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder=".md"
+            aria-label="追加拡張子"
+          />
+        </td>
+        <td class="action-col">
+          <button type="button" class="icon-button remove" title="この行を削除" aria-label="この行を削除">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+            </svg>
+          </button>
+        </td>
+      </tr>
+    </template>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
