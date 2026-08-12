@@ -1,8 +1,11 @@
 // Service Worker 本体。
-// アイコンクリックを起点に「取得先の解決 → Markdown 取得 → クリップボードへコピー → 通知」を束ねる。
+// 2 つの起点をまとめる。
+//   アイコンクリック / ショートカット : ページ全体を取得してコピー
+//   コンテキストメニュー              : 選択範囲をその場で Markdown へ変換してコピー
 
 import { resolveTarget } from "./sources.js";
 import { copyTextInPage, fetchMarkdownInPage, showToastInPage } from "./injected.js";
+import { selectionToMarkdownInPage } from "./markdown.js";
 import { getApiKey, getDirectSources } from "./settings.js";
 import { startSpinner, stopSpinner } from "./spinner.js";
 
@@ -20,6 +23,9 @@ const SETUP_POPUP = "popup.html";
 const SETUP_POPUP_PORT = "setup-popup";
 // 設定画面への行き方。トーストを出せないページでもこの文言だけは伝わるようにする。
 const SETTINGS_HINT = "拡張アイコンを右クリック →「オプション」から設定できます";
+// 選択範囲用のコンテキストメニュー
+const SELECTION_MENU_ID = "copy-selection-as-markdown";
+const SELECTION_MENU_TITLE = "選択範囲を Markdown としてコピー";
 
 // 同じタブでの二重実行を防ぐガード
 const inFlightTabIds = new Set();
@@ -50,14 +56,40 @@ chrome.runtime.onConnect.addListener((port) => {
   clearActiveTabPopup();
 });
 
+// メニュー定義は Chrome 側に永続化されるため、Service Worker の起動ごとではなく
+// インストールと更新のタイミングだけで組み直す。
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: SELECTION_MENU_ID,
+      title: SELECTION_MENU_TITLE,
+      // テキストを選択しているときだけメニューに現れる
+      contexts: ["selection"],
+    });
+  });
+});
+
 chrome.action.onClicked.addListener((tab) => {
   const tabId = tab?.id;
   if (typeof tabId !== "number" || tabId === chrome.tabs.TAB_ID_NONE) return;
-  if (inFlightTabIds.has(tabId)) return;
-
-  inFlightTabIds.add(tabId);
-  copyPageAsMarkdown(tab).finally(() => inFlightTabIds.delete(tabId));
+  runExclusively(tabId, () => copyPageAsMarkdown(tab));
 });
+
+// コンテキストメニュー項目の実行も activeTab の付与対象なので、
+// アイコンクリックと同じくホスト権限を持たないままページへ注入できる。
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== SELECTION_MENU_ID) return;
+  const tabId = tab?.id;
+  if (typeof tabId !== "number" || tabId === chrome.tabs.TAB_ID_NONE) return;
+  runExclusively(tabId, () => copySelectionAsMarkdown(tabId, info));
+});
+
+// 同じタブで処理が重ならないようにする
+function runExclusively(tabId, task) {
+  if (inFlightTabIds.has(tabId)) return;
+  inFlightTabIds.add(tabId);
+  task().finally(() => inFlightTabIds.delete(tabId));
+}
 
 // APIキーが要るのに未設定のとき、設定を促すポップアップをその場で開く。
 // openPopup には popup 指定が必要なので対象タブだけに一時的に設定するが、
@@ -117,20 +149,54 @@ async function copyPageAsMarkdown(tab) {
     const size = markdown.length.toLocaleString("ja-JP");
     await announce(tabId, `Markdown をコピーしました（${target.name} / ${size} 文字）`, "success");
   } catch (error) {
-    const isKnown = error instanceof CopyMarkdownError;
-    const message = isKnown
-      ? error.message
-      : `予期しないエラーが発生しました（${error?.message ?? error}）`;
-    // ポップアップを出せたならトーストは重複するので省き、バッジだけ残す
-    const openedPopup = isKnown && error.promptSetup ? await openSetupPopup(tabId) : false;
-    await announce(tabId, message, "error", {
-      needsSettings: isKnown && error.needsSettings,
-      skipToast: openedPopup,
-    });
+    await reportFailure(tabId, error);
   } finally {
     // announce の中でも止まるが、announce 自体が失敗した場合に回り続けないよう二重に止める
     stopSpinner(tabId);
   }
+}
+
+// 選択範囲の変換はページ内で完結し通信を伴わないため、スピナーは出さずに結果だけ知らせる。
+async function copySelectionAsMarkdown(tabId, info) {
+  try {
+    const result = await runInPage(tabId, selectionToMarkdownInPage, []);
+    if (!result) {
+      throw new CopyMarkdownError("ページから選択範囲を受け取れませんでした");
+    }
+    if (result.empty) {
+      // メニューには選択文字列が渡っているのに最上位フレームでは選択が見えない場合、
+      // 選択はフレームの内側にある。
+      throw new CopyMarkdownError(
+        info.selectionText?.trim()
+          ? "フレーム内の選択範囲は取得できません"
+          : "テキストを選択してから実行してください",
+      );
+    }
+
+    const markdown = result.markdown ?? "";
+    if (!markdown.trim()) {
+      throw new CopyMarkdownError("選択範囲から Markdown を生成できませんでした");
+    }
+
+    await copyToClipboard(tabId, markdown);
+    const size = markdown.length.toLocaleString("ja-JP");
+    await announce(tabId, `選択範囲を Markdown でコピーしました（${size} 文字）`, "success");
+  } catch (error) {
+    await reportFailure(tabId, error);
+  }
+}
+
+async function reportFailure(tabId, error) {
+  const isKnown = error instanceof CopyMarkdownError;
+  const message = isKnown
+    ? error.message
+    : `予期しないエラーが発生しました（${error?.message ?? error}）`;
+  // ポップアップを出せたならトーストは重複するので省き、バッジだけ残す
+  const openedPopup = isKnown && error.promptSetup ? await openSetupPopup(tabId) : false;
+  await announce(tabId, message, "error", {
+    needsSettings: isKnown && error.needsSettings,
+    skipToast: openedPopup,
+  });
 }
 
 // 設定で直接取得と決めたサイト。ページと同一オリジンで fetch するのでセッション Cookie が使える。

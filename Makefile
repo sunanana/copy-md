@@ -5,6 +5,7 @@
 SOURCES := manifest.json \
            background.js \
            injected.js \
+           markdown.js \
            sources.js \
            settings.js \
            spinner.js \
