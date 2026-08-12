@@ -115,13 +115,13 @@ HTTP 200 を返していても中身が not-found の HTML というサイトが
 
 | 権限 | 理由 |
 | --- | --- |
-| `activeTab` | アイコンをクリックしたタブに限り、URL の読み取りとスクリプト注入を許可してもらうため |
+| `activeTab` | アイコンをクリック（またはショートカットキーで起動）したタブに限り、URL の読み取りとスクリプト注入を許可してもらうため |
 | `scripting` | `chrome.scripting.executeScript` でアクティブタブに関数を注入するため |
 | `clipboardWrite` | 注入したスクリプトからクリップボードへ書き込むため |
 | `storage` | API キーと直接取得ルールを `chrome.storage.local` に保存するため |
 
 `host_permissions` は `https://r.jina.ai/*` のみ。直接取得するサイトについては宣言していない。
-アイコンをクリックした瞬間に `activeTab` が付与され、その権限でページに関数を注入し、
+アイコンをクリックした瞬間（ショートカットキーによる起動も同じ）に `activeTab` が付与され、その権限でページに関数を注入し、
 ページ自身のオリジンから fetch するため。この方式を採る理由は 2 つある。
 
 1. **Cookie が確実に送られる**。Service Worker からの `credentials: "include"` は `SameSite`
@@ -140,6 +140,34 @@ HTTP 200 を返していても中身が not-found の HTML というサイトが
 直接取得が 15 秒、Jina AI Reader 経由が 25 秒。Manifest V3 の Service Worker は
 「fetch のレスポンスが 30 秒以内に届かない」場合に強制終了され、それを超えると
 エラー通知すら出せなくなるため。
+
+### ショートカットに `_execute_action` を使っている
+
+独自コマンド名 + `chrome.commands.onCommand` ではなく予約コマンドの `_execute_action` を宣言している。
+アクションそのものを起動するため、キーボードからでもアイコンクリックと完全に同じ経路
+（`chrome.action.onClicked`、APIキー未設定時のポップアップ表示を含む）を通り、分岐を持たずに済む。
+
+`suggested_key` はあくまで既定値で、ユーザーは `chrome://extensions/shortcuts` から変更できる。
+拡張側から割当を書き換える API は存在せず、`chrome.commands.getAll` による読み取りのみ可能。
+
+キーの組み合わせは Chromium 側のパーサ（`ui/base/accelerators/command.cc` の `ParseImpl`）で
+`+` 区切り 3 トークンまでに制限されている。つまり **修飾キーは 2 つまで**で、
+`Cmd + Ctrl + Shift + W` のような指定は manifest でも設定画面でも受け付けられない。
+macOS 向けの `Ctrl` は `Ctrl` と書くと `Command` に正規化されるため、
+Ctrl キーそのものを使いたい場合は `mac` セクションで `MacCtrl` と書く必要がある。
+なお `Alt` と `Ctrl`／`Command` の同時指定は AltGr との衝突を避けるため Chromium 自体が拒否する。
+
+`W` を使う組み合わせは、ウィンドウ／タブを閉じる系の標準ショートカットとの衝突に注意がいる。
+`Ctrl + W`（macOS では `⌘W`）はタブを閉じる、`Ctrl + Shift + W`（同 `⇧⌘W`）はウィンドウを閉じる。
+これらウィンドウ管理系の標準ショートカットは常に優先され拡張から上書きできないため、
+割り当てても押した瞬間にウィンドウが閉じるだけになる。
+そのため macOS は `Command` を避けた `⌃⇧W`（`MacCtrl+Shift+W`）、
+Windows / Linux は `Ctrl` を避けた `Alt+Shift+W` にしている。
+
+なお `suggested_key` が他の拡張に先取りされている場合、Chrome は警告を出さず自動割当を
+見送る（`AddKeybindingPref` が上書き不可で false を返す）。このとき設定画面には manifest の
+提案値がそのまま表示されるため、割り当て済みに見えてしまう。実際の割当は
+`chrome.commands.getAll()` の `shortcut` が空でないかで判断する。
 
 ## docs/ の公開
 

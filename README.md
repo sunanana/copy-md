@@ -2,6 +2,14 @@
 
 開いているページの内容を Markdown として取得し、クリップボードにコピーする Chrome 拡張。
 
+## インストール
+
+Chrome ウェブストアから追加できる。
+
+[<img src="docs/images/chrome-web-store-badge.png" alt="Chrome ウェブストアから入手" width="248">](https://chromewebstore.google.com/detail/copy-md/lokkcglgmalbleieekepcafdkiaegkcm)
+
+インストール後、下記の[セットアップ](#セットアップ)で API キーを設定する。
+
 ## セットアップ
 
 サービスから直接 Markdown を取得できるサイト以外のページは Jina AI Reader を経由するため、
@@ -12,6 +20,20 @@ API キーの設定が必要。
 3. キーを貼り付ける（入力が止まると自動で保存される）
 
 設定は `chrome.storage.local` にこの端末のみで保存される。
+
+## ショートカットキー
+
+アイコンのクリックと同じ動作をキーボードから実行できる。
+
+| OS | 既定のキー |
+| --- | --- |
+| macOS | `Ctrl + Shift + W` |
+| Windows / Linux | `Alt + Shift + W` |
+
+`chrome://extensions/shortcuts` から各自で変更できる。ただし Chrome の制限で
+**修飾キーは 2 つまで**（`Cmd + Ctrl + Shift + W` のような 3 つの組み合わせは登録できない）。
+また、`Ctrl + Shift + W` のようなウィンドウ管理系の Chrome 標準ショートカットは
+拡張から上書きできないため、割り当てても動作しない。
 
 ## Markdown を取得するまでの流れ
 
